@@ -8,6 +8,17 @@ start:
 	mov ss, ax
 	mov sp, 0x7c00
 
+test_disk_extension:
+	mov [drive_id], dl
+	
+	mov ah, 0x41
+	mov bx, 0x55aa
+	int 0x13
+
+	jc disk_extension_not_supported
+	cmp bx, 0xaa55
+	jne disk_extension_not_supported
+
 print_message:
 	mov ah, 0x13
 	mov al, 1
@@ -17,11 +28,13 @@ print_message:
 	mov cx, message_len
 	int 0x10
 
+disk_extension_not_supported:	
 end:
 	hlt
 	jmp end
 
-message:	db "Hello"
+drive_id:	db 0
+message:	db "Disk Extension is supported"
 message_len:	equ $-message
 
 	times (0x1be-($-$$)) db 0
