@@ -17,6 +17,19 @@ start:
 	test edx, (1 << 26)
 	jz long_mode_not_supported
 
+load_kernel:
+	mov si, read_packet
+	mov word [si], 0x10
+	mov word [si+2], 100
+	mov word [si+4], 0	; we load the kernel here, because we'll load the 64 bit kernel to 0x100000
+	mov word [si+6], 0x1000	; 0x1000 * 16 = 0x10000
+	mov dword [si+8], 6
+	mov dword [si+0xc], 0
+	mov dl, [drive_id]
+	mov ah, 0x42
+	int 0x13
+	jc read_error
+
 	mov ah, 0x13
 	mov al, 1
 	mov bx, 0xa
@@ -25,11 +38,14 @@ start:
 	mov cx, message_len
 	int 0x10
 
+read_error:	
 long_mode_not_supported:
 end:
 	hlt
 	jmp end
 
 drive_id:	db 0
-message:	db "long mode is supported"
+message:	db "kernel is loaded"
 message_len:	equ $-message
+
+read_packet:	times 16 db 0
