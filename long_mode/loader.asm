@@ -31,24 +31,24 @@ load_kernel:
 	jc error
 
 get_memory_info_start:
-	mov eax, 0xe820
-	mov edx, 0x534d4150
-	mov ecx, 20
-	mov edi, 0x9000
-	xor ebx, ebx
-	int 0x15
+	mov eax, 0xe820		; bios function for memory map
+	mov edx, 0x534d4150	; smap signature
+	mov ecx, 20		; size of memory map entry
+	mov edi, 0x9000		; address to store memory map
+	xor ebx, ebx		; clear ebx
+	int 0x15		; call bios memory services
 	jc error
 
 get_memory_info:
-	add edi, 20
-	mov eax, 0xe820
-	mov edx, 0x534d4150
-	mov ecx, 20
-	int 0x15
-	jc get_memory_done
+	add edi, 20		; increment by 20 (size of memory map entry)
+	mov eax, 0xe820l	; call again function for memory map
+	mov edx, 0x534d4150	; set smap signature again
+	mov ecx, 20		; size of memory map entry
+	int 0x15		; call bios memory services
+	jc get_memory_done	; we are finished if carry flag is set
 
-	test ebx, ebx
-	jnz get_memory_info
+	test ebx, ebx		; test ebx
+	jnz get_memory_info	; loop if ebx is not zero
 get_memory_done:
 
 	;; enable A20 line
