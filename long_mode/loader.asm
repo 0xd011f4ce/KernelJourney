@@ -28,8 +28,29 @@ load_kernel:
 	mov dl, [drive_id]
 	mov ah, 0x42
 	int 0x13
-	jc read_error
+	jc error
 
+get_memory_info_start:
+	mov eax, 0xe820
+	mov edx, 0x534d4150
+	mov ecx, 20
+	mov edi, 0x9000
+	xor ebx, ebx
+	int 0x15
+	jc error
+
+get_memory_info:
+	add edi, 20
+	mov eax, 0xe820
+	mov edx, 0x534d4150
+	mov ecx, 20
+	int 0x15
+	jc get_memory_done
+
+	test ebx, ebx
+	jnz get_memory_info
+
+get_memory_done:
 	mov ah, 0x13
 	mov al, 1
 	mov bx, 0xa
@@ -38,14 +59,14 @@ load_kernel:
 	mov cx, message_len
 	int 0x10
 
-read_error:	
+error:	
 long_mode_not_supported:
 end:
 	hlt
 	jmp end
 
 drive_id:	db 0
-message:	db "kernel is loaded"
+message:	db "memory info done"
 message_len:	equ $-message
 
 read_packet:	times 16 db 0
