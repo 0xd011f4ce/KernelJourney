@@ -49,8 +49,16 @@ get_memory_info:
 
 	test ebx, ebx
 	jnz get_memory_info
-
 get_memory_done:
+
+	;; enable A20 line
+	in al, 0x92
+	or al, 2
+	out 0x92, al
+
+	xor ax, ax
+	mov es, ax
+	
 	mov ah, 0x13
 	mov al, 1
 	mov bx, 0xa
@@ -66,7 +74,7 @@ end:
 	jmp end
 
 drive_id:	db 0
-message:	db "memory info done"
+message:	db "A20 line is on"
 message_len:	equ $-message
 
 read_packet:	times 16 db 0
