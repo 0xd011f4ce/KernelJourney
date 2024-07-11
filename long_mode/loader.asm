@@ -41,7 +41,7 @@ get_memory_info_start:
 
 get_memory_info:
 	add edi, 20		; increment by 20 (size of memory map entry)
-	mov eax, 0xe820l	; call again function for memory map
+	mov eax, 0xe820		; call again function for memory map
 	mov edx, 0x534d4150	; set smap signature again
 	mov ecx, 20		; size of memory map entry
 	int 0x15		; call bios memory services
@@ -58,14 +58,25 @@ get_memory_done:
 
 	xor ax, ax
 	mov es, ax
-	
-	mov ah, 0x13
-	mov al, 1
-	mov bx, 0xa
-	xor dx, dx
-	mov bp, message
-	mov cx, message_len
+
+set_video_mode:
+	mov ax,3
 	int 0x10
+	
+	mov si,message
+	mov ax,0xb800
+	mov es,ax
+	xor di,di
+	mov cx,message_len
+
+print_message:
+	mov al,[si]
+	mov [es:di],al
+	mov byte[es:di+1],0xa
+
+	add di,2
+	add si,1
+	loop print_message
 
 error:	
 long_mode_not_supported:
@@ -74,7 +85,6 @@ end:
 	jmp end
 
 drive_id:	db 0
-message:	db "A20 line is on"
+message:	db "Text mode is set"
 message_len:	equ $-message
-
 read_packet:	times 16 db 0
