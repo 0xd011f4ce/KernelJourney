@@ -23,7 +23,7 @@ load_kernel:
 	mov word [si+2], 100
 	mov word [si+4], 0	; we load the kernel here, because we'll load the 64 bit kernel to 0x100000
 	mov word [si+6], 0x1000	; 0x1000 * 16 = 0x10000
-	mov dword [si+8], 6
+	mov dword [si+8], 0x06
 	mov dword [si+0xc], 0
 	mov dl, [drive_id]
 	mov ah, 0x42
@@ -60,23 +60,18 @@ get_memory_done:
 	mov es, ax
 
 set_video_mode:
-	mov ax,3
+	mov ax,0x3
 	int 0x10
-	
-	mov si,message
-	mov ax,0xb800
-	mov es,ax
-	xor di,di
-	mov cx,message_len
 
-print_message:
-	mov al,[si]
-	mov [es:di],al
-	mov byte[es:di+1],0xa
+	cli			; clear interrupts
+	lgdt [gdt32_ptr]	; load gdt
+	lidt [idt32_ptr]	; load idt
 
-	add di,2
-	add si,1
-	loop print_message
+	mov eax, cr0
+	or eax, 1
+	mov cr0, eax
+
+	jmp 0x8:protected_mode
 
 error:	
 long_mode_not_supported:
@@ -84,7 +79,51 @@ end:
 	hlt
 	jmp end
 
+	[BITS 32]
+protected_mode:
+	;; initialise registers
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov ss, ax
+	mov esp, 0x7c00
+
+	mov byte [0xb8000], 'A'
+	mov byte [0xb8001], 0xa
+
+protected_mode_end:
+	hlt
+	jmp protected_mode_end
+
 drive_id:	db 0
-message:	db "Text mode is set"
-message_len:	equ $-message
 read_packet:	times 16 db 0
+
+gdt32:
+	dq 0
+code32:	
+	dw 0xffff
+	dw 0
+	db 0
+	db 10011010b	; Type: Code, Descriptor type: Executable
+	db 11001111b	; Granularity: 4KB, 32-bit
+	db 0
+
+data32:	
+	; Data Segment Descriptor
+	dw 0xffff
+	dw 0
+	db 0
+	db 10010010b	; Type: Data, Descriptor type: Writable
+	db 11001111b	; Granularity: 4KB, 32-bit
+	db 0
+
+gdt32_len: equ $-gdt32
+
+gdt32_ptr:
+	dw gdt32_len-1
+	dd gdt32
+
+idt32:			; IDT must be initialized here with proper entries for your system
+idt32_ptr:
+	dw 0
+	dd 0
